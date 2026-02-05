@@ -1,30 +1,41 @@
 const express = require("express");
-const router = express.Router();
-const pool = require("../db");
-const verifyToken = require("../middleware/verifyToken");
 
-// GET /api/portfolio
-router.get("/", verifyToken, async (req, res) => {
+const router = express.Router();
+
+const auth = require("../middleware/authMiddleware");
+
+const pool = require("../db");
+
+
+
+// ✅ PROTECTED
+
+router.get("/", auth, async (req, res) => {
+
   try {
-    console.log("📊 Portfolio route HIT for user:", req.userId);
 
     const result = await pool.query(
+
       "SELECT balance, invested FROM users WHERE id = $1",
-      [req.userId]
+
+      [req.user.userId]
+
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "User not found" });
-    }
 
-    res.json({
-      balance: Number(result.rows[0].balance),
-      invested: Number(result.rows[0].invested),
-    });
+
+    res.json(result.rows[0]);
+
   } catch (err) {
-    console.error("PORTFOLIO ERROR:", err);
+
+    console.error(err);
+
     res.status(500).json({ error: "Server error" });
+
   }
+
 });
+
+
 
 module.exports = router;

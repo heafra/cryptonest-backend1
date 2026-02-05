@@ -3,64 +3,59 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 // ======================
-// Signup
+// SIGNUP
 // ======================
 exports.signup = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert new user into DB
     const result = await pool.query(
-      "INSERT INTO users (email, password, balance, invested) VALUES ($1, $2, 0, 0) RETURNING id, email, balance, invested",
+      "INSERT INTO users (email, password, balance, invested, is_admin) VALUES ($1, $2, 0, 0, false) RETURNING id, email, balance, invested, is_admin",
       [email, hashedPassword]
     );
 
     const user = result.rows[0];
 
-    // Create JWT
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, email: user.email, isAdmin: user.is_admin },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // Set cookie
+    // ✅ COOKIE ONLY
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false, // 🔹 true in production with HTTPS
+      secure: false, // true in production (HTTPS)
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Return JSON with token and user info
-    res.json({
+    res.status(201).json({
       message: "Signup successful",
-      token, // for frontend localStorage
       user: {
         email: user.email,
         balance: user.balance,
         invested: user.invested,
+        isAdmin: user.is_admin,
       },
     });
   } catch (err) {
     console.error("Signup error:", err);
-    res.status(500).json({ error: "User already exists or server error" });
+    res.status(400).json({ error: "User already exists" });
   }
 };
 
 // ======================
-// Login
+// LOGIN
 // ======================
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Fetch user
     const result = await pool.query(
-      "SELECT id, email, password, balance, invested FROM users WHERE email = $1",
+      "SELECT id, email, password, balance, invested, is_admin FROM users WHERE email = $1",
       [email]
     );
 
@@ -69,34 +64,34 @@ exports.login = async (req, res) => {
 
     const user = result.rows[0];
 
-    // Compare password
     const match = await bcrypt.compare(password, user.password);
     if (!match)
       return res.status(400).json({ error: "Incorrect password" });
 
-    // Create JWT
+    // Generate JWT with isAdmin included
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, email: user.email, isAdmin: user.is_admin },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // Set cookie
+    // ✅ COOKIE ONLY
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false, // 🔹 true in production with HTTPS
+      secure: false,
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Return JSON with token and user info
+    // ✅ Return token for admin usage
     res.json({
       message: "Login successful",
-      token, // for frontend localStorage
+      token, // <-- needed for admin routes
       user: {
         email: user.email,
         balance: user.balance,
         invested: user.invested,
+        isAdmin: user.is_admin,
       },
     });
   } catch (err) {
@@ -106,10 +101,14 @@ exports.login = async (req, res) => {
 };
 
 // ======================
-// Logout
+// LOGOUT
 // ======================
 exports.logout = (req, res) => {
-  res.clearCookie("token", { httpOnly: true, sameSite: "lax" });
+  res.clearCookie("token", {
+    httpOnly: true,
+    sameSite: "lax",
+  });
+
   res.json({ message: "Logged out" });
 };
 
