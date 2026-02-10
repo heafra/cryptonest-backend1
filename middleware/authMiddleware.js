@@ -3,13 +3,11 @@ import jwt from "jsonwebtoken";
 
 const auth = (req, res, next) => {
   try {
-    const token = req.cookies?.token; // read from HTTP-only cookie
-    if (!token) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
+    const token = req.cookies?.token;
+    if (!token) return res.status(401).json({ error: "Not authenticated" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // attach user info to request
+    req.user = decoded; // attach user info
     next();
   } catch (err) {
     console.error("Auth middleware error:", err);
@@ -17,5 +15,4 @@ const auth = (req, res, next) => {
   }
 };
 
-export default auth;
-
+export default auth; // <-- MUST use default export

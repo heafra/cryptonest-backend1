@@ -1,11 +1,9 @@
-// routes/portfolioRoutes.js
 import express from "express";
-import auth from "../middleware/authMiddleware.js";
+import auth from "../middleware/authMiddleware.js"; // default import
 import User from "../models/User.js";
 
 const router = express.Router();
 
-// GET /portfolio — protected route
 router.get("/", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("email balance invested");
