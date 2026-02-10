@@ -1,18 +1,19 @@
 // middleware/authMiddleware.js
-import jwt from "jsonwebtoken";
+import jwt from 'jsonwebtoken';
+import db from '../db.js';
 
-const auth = (req, res, next) => {
+export default function auth(req, res, next) {
+  const token = req.cookies.token;
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+
   try {
-    const token = req.cookies?.token;
-    if (!token) return res.status(401).json({ error: "Not authenticated" });
-
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // attach user info
-    next();
-  } catch (err) {
-    console.error("Auth middleware error:", err);
-    res.status(401).json({ error: "Invalid or expired token" });
-  }
-};
+    const user = db.prepare('SELECT id, email, is_admin FROM users WHERE id = ?').get(decoded.userId);
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-export default auth; // <-- MUST use default export
+    req.user = { userId: user.id, email: user.email, isAdmin: !!user.is_admin };
+    next();
+  } catch {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+}

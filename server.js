@@ -1,22 +1,20 @@
 // server.js
 
-import express from "express";
+import express from 'express';
 
-import cors from "cors";
+import cookieParser from 'cookie-parser';
 
-import cookieParser from "cookie-parser";
+import cors from 'cors';
 
+import dotenv from 'dotenv';
 
+import authRoutes from './routes/authRoutes.js';
 
-// Import your route modules
-
-import authRoutes from "./routes/authRoutes.js";
-
-import portfolioRoutes from "./routes/portfolioRoutes.js";
+import portfolioRoutes from './routes/portfolioRoutes.js';
 
 
 
-// Create Express app
+dotenv.config();
 
 const app = express();
 
@@ -28,23 +26,11 @@ app.use(express.json());
 
 app.use(cookieParser());
 
-
-
-// ✅ CORS configuration for frontend on Vercel
-
 app.use(cors({
 
-  origin: [
+  origin: ['https://cryptonep.com', 'https://www.cryptonep.com', 'https://cryptonep.vercel.app'],
 
-    "https://cryptonep.com",
-
-    "https://www.cryptonep.com",
-
-    "https://cryptonep.vercel.app"
-
-  ],
-
-  credentials: true, // needed for cookies
+  credentials: true,
 
 }));
 
@@ -52,19 +38,9 @@ app.use(cors({
 
 // Routes
 
-app.use("/auth", authRoutes);        // Auth routes: signup, login, logout
+app.use('/auth', authRoutes);
 
-app.use("/portfolio", portfolioRoutes); // Portfolio routes: protected
-
-
-
-// Health check endpoint
-
-app.get("/", (req, res) => {
-
-  res.send("API is running!");
-
-});
+app.use('/portfolio', portfolioRoutes);
 
 
 
@@ -72,8 +48,8 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-  console.log(`Server running on port ${PORT}`);
 
-});
+
+
