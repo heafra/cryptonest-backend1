@@ -1,55 +1,53 @@
-// server.js
+import express from "express";
 
-import express from 'express';
+import cors from "cors";
 
-import cookieParser from 'cookie-parser';
-
-import cors from 'cors';
-
-import dotenv from 'dotenv';
-
-import authRoutes from './routes/authRoutes.js';
-
-import portfolioRoutes from './routes/portfolioRoutes.js';
+import cookieParser from "cookie-parser";
 
 
 
-dotenv.config();
+import authRoutes from "./routes/authRoutes.js";
+
+import portfolioRoutes from "./routes/portfolioRoutes.js";
+
+
 
 const app = express();
 
 
 
-// Middleware
-
-app.use(express.json());
-
-app.use(cookieParser());
-
 app.use(cors({
 
-  origin: ['https://cryptonep.com', 'https://www.cryptonep.com', 'https://cryptonep.vercel.app'],
+  origin: "https://www.cryptonep.com",
 
-  credentials: true,
+  credentials: true
 
 }));
 
 
 
-// Routes
+app.use(express.json());
 
-app.use('/auth', authRoutes);
-
-app.use('/portfolio', portfolioRoutes);
+app.use(cookieParser());
 
 
 
-// Start server
+app.use("/auth", authRoutes);
 
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.use("/portfolio", portfolioRoutes);
 
 
 
+app.get("/health", (req, res) => {
 
+  res.json({ status: "ok" });
+
+});
+
+
+
+app.listen(5000, () => {
+
+  console.log("Server running on port 5000");
+
+});
