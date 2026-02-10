@@ -1,22 +1,16 @@
-// backend/models/User.js
-const pool = require("../config/db");
-const bcrypt = require("bcrypt");
+// models/User.js
+const mongoose = require("mongoose");
 
-class User {
-  static async create(email, password) {
-    const hashed = await bcrypt.hash(password, 10);
-    const result = await pool.query(
-      "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email",
-      [email, hashed]
-    );
-    return result.rows[0];
-  }
+const userSchema = new mongoose.Schema(
+  {
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, required: true },
+    balance: { type: Number, default: 0 },
+    invested: { type: Number, default: 0 },
+    isAdmin: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
 
-  static async findByEmail(email) {
-    const result = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
-    return result.rows[0];
-  }
-}
-
-module.exports = User;
+module.exports = mongoose.model("User", userSchema);
 

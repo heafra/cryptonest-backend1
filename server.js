@@ -1,14 +1,26 @@
-// 🔑 LOAD ENV FIRST
+import dotenv from "dotenv";
 
-require("dotenv").config();
+dotenv.config();
 
 
 
-const express = require("express");
+import express from "express";
 
-const cors = require("cors");
+import cors from "cors";
 
-const cookieParser = require("cookie-parser");
+import cookieParser from "cookie-parser";
+
+import morgan from "morgan";
+
+
+
+import connectDB from "./db.js";
+
+import authRoutes from "./routes/authRoutes.js";
+
+
+
+connectDB();
 
 
 
@@ -18,7 +30,7 @@ const app = express();
 
 // ======================
 
-// CORS (FIXED)
+// CORS
 
 // ======================
 
@@ -28,7 +40,7 @@ const allowedOrigins = [
 
   "https://cryptonep.com",
 
-  "https://www.cryptonep.com",
+  "https://www.cryptonep.com"
 
 ];
 
@@ -38,31 +50,17 @@ app.use(
 
   cors({
 
-    origin: function (origin, callback) {
-
-      // allow requests with no origin (like curl, Postman)
+    origin: (origin, callback) => {
 
       if (!origin) return callback(null, true);
 
-
-
-      if (allowedOrigins.includes(origin)) {
-
-        return callback(null, true);
-
-      }
-
-
+      if (allowedOrigins.includes(origin)) return callback(null, true);
 
       return callback(new Error("Not allowed by CORS"));
 
     },
 
-    credentials: true,
-
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-
-    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
 
   })
 
@@ -70,55 +68,35 @@ app.use(
 
 
 
-// IMPORTANT: allow preflight to succeed
+// ======================
 
-app.options("*", cors());
+// MIDDLEWARE
 
-
+// ======================
 
 app.use(express.json());
 
+app.use(express.urlencoded({ extended: true }));
+
 app.use(cookieParser());
 
+app.use(morgan("dev"));
 
 
-// ======================
-
-// Routes
 
 // ======================
 
-const authRoutes = require("./routes/authRoutes");
+// ROUTES
 
-const portfolioRoutes = require("./routes/portfolioRoutes");
-
-const depositRoutes = require("./routes/depositRoutes");
-
-const withdrawRoutes = require("./routes/withdrawRoutes");
-
-const investRoutes = require("./routes/investRoutes");
-
-const adminRoutes = require("./routes/adminRoutes");
-
-
+// ======================
 
 app.use("/api/auth", authRoutes);
 
-app.use("/api/portfolio", portfolioRoutes);
-
-app.use("/api/deposit", depositRoutes);
-
-app.use("/api/withdraw", withdrawRoutes);
-
-app.use("/api/invest", investRoutes);
-
-app.use("/api/admin", adminRoutes);
-
 
 
 // ======================
 
-// Health Check
+// HEALTH CHECK
 
 // ======================
 
@@ -132,7 +110,7 @@ app.get("/", (req, res) => {
 
 // ======================
 
-// Start Server
+// START SERVER
 
 // ======================
 

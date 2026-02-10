@@ -1,9 +1,23 @@
 // db.js
-require("dotenv").config(); // <-- ensure .env is loaded first
-const { Pool } = require("pg");
+const mongoose = require("mongoose");
+const dotenv = require("dotenv");
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+dotenv.config();
 
-module.exports = pool;
+const mongoUri = process.env.MONGO_URI;
+
+console.log("Connecting to MongoDB:", mongoUri ? "(loaded)" : "(missing)");
+
+const connectDB = async () => {
+  try {
+    await mongoose.connect(mongoUri, {
+      autoIndex: true,
+    });
+    console.log("✅ MongoDB connected successfully");
+  } catch (err) {
+    console.error("❌ MongoDB connection error:", err);
+    process.exit(1);
+  }
+};
+
+module.exports = connectDB;
