@@ -1,87 +1,83 @@
-// controllers/authController.js
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
-// ======================
-// SIGNUP
-// ======================
-exports.signup = async (req, res) => {
-  const { email, password } = req.body || {};
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: true,      // MUST be true for Vercel HTTPS
+  sameSite: "none",  // REQUIRED for cross-domain cookies
+  maxAge: 7 * 24 * 60 * 60 * 1000
+};
 
+export const signup = async (req, res) => {
   try {
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password required" });
-    }
+    const { email, password } = req.body;
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ error: "User already exists" });
+    if (!email || !password)
+      return res.status(400).json({ error: "Missing fields" });
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ email, password: hashedPassword });
+    if (await User.findOne({ email }))
+      return res.status(400).json({ error: "User exists" });
 
-    const token = jwt.sign({ userId: user._id, isAdmin: user.isAdmin }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    const hashed = await bcrypt.hash(password, 10);
+    const user = await User.create({ email, password: hashed });
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
-    console.log("✅ Signup success:", email);
+    res.cookie("token", token, COOKIE_OPTIONS);
 
-    res.status(201).json({
-      message: "Signup successful",
-      user: { email: user.email, balance: user.balance, invested: user.invested, isAdmin: user.isAdmin },
-    });
+    res.status(201).json({ user: { email: user.email } });
   } catch (err) {
-    console.error("Signup error:", err);
+    console.error(err);
     res.status(500).json({ error: "Signup failed" });
   }
 };
 
-// ======================
-// LOGIN
-// ======================
-exports.login = async (req, res) => {
-  const { email, password } = req.body || {};
-
+export const login = async (req, res) => {
   try {
-    if (!email || !password) return res.status(400).json({ error: "Email and password required" });
+    const { email, password } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ error: "Invalid credentials" });
 
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(400).json({ error: "Invalid credentials" });
+    if (!(await bcrypt.compare(password, user.password)))
+      return res.status(400).json({ error: "Invalid credentials" });
 
-    const token = jwt.sign({ userId: user._id, isAdmin: user.isAdmin }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("token", token, COOKIE_OPTIONS);
 
-    console.log("✅ Login success:", email);
-
-    res.json({
-      message: "Login successful",
-      user: { email: user.email, balance: user.balance, invested: user.invested, isAdmin: user.isAdmin },
-    });
-  } catch (err) {
-    console.error("Login error:", err);
+    res.json({ user: { email: user.email } });
+  } catch {
     res.status(500).json({ error: "Login failed" });
   }
 };
 
-// ======================
-// LOGOUT
-// ======================
-exports.logout = (req, res) => {
-  res.clearCookie("token", { httpOnly: true, secure: true, sameSite: "none" });
-  console.log("✅ Logout success");
+export const me = async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ user: null });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password");
+
+    res.json({ user });
+  } catch {
+    res.status(401).json({ user: null });
+  }
+};
+
+export const logout = (req, res) => {
+  res.clearCookie("token", COOKIE_OPTIONS);
   res.json({ message: "Logged out" });
 };
+
+
