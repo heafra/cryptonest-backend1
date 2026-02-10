@@ -1,28 +1,28 @@
-import express from "express";
+// server.js
 
-import mongoose from "mongoose";
+import express from "express";
 
 import cors from "cors";
 
 import cookieParser from "cookie-parser";
 
-import dotenv from "dotenv";
+
+
+// Import your route modules
+
+import authRoutes from "./routes/authRoutes.js";
+
+import portfolioRoutes from "./routes/portfolioRoutes.js";
 
 
 
-dotenv.config();
-
-
+// Create Express app
 
 const app = express();
 
 
 
-// =====================
-
-// MIDDLEWARE
-
-// =====================
+// Middleware
 
 app.use(express.json());
 
@@ -30,176 +30,50 @@ app.use(cookieParser());
 
 
 
-// =====================
+// ✅ CORS configuration for frontend on Vercel
 
-// CORS (VERY IMPORTANT)
+app.use(cors({
 
-// =====================
+  origin: [
 
-app.use(
+    "https://cryptonep.com",
 
-  cors({
+    "https://www.cryptonep.com",
 
-    origin: [
+    "https://cryptonep.vercel.app"
 
-      "http://localhost:3000",
+  ],
 
-      "https://cryptonep.com",
+  credentials: true, // needed for cookies
 
-      "https://www.cryptonep.com",
-
-      "https://cryptonep.vercel.app",
-
-    ],
-
-    credentials: true, // ✅ REQUIRED for cookies
-
-  })
-
-);
+}));
 
 
 
-// =====================
+// Routes
 
-// TEST ROUTE
+app.use("/auth", authRoutes);        // Auth routes: signup, login, logout
 
-// =====================
+app.use("/portfolio", portfolioRoutes); // Portfolio routes: protected
+
+
+
+// Health check endpoint
 
 app.get("/", (req, res) => {
 
-  res.send("API running");
+  res.send("API is running!");
 
 });
 
 
 
-// =====================
-
-// AUTH ROUTES
-
-// =====================
-
-app.post("/api/auth/login", async (req, res) => {
-
-  const { email } = req.body;
-
-
-
-  // ⚠️ Normally you'd verify password & user
-
-  const fakeToken = "jwt_token_example";
-
-
-
-  res.cookie("token", fakeToken, {
-
-    httpOnly: true,
-
-    secure: true,      // ✅ REQUIRED (Vercel = HTTPS)
-
-    sameSite: "none",  // ✅ REQUIRED (cross-site)
-
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-
-  });
-
-
-
-  console.log("✅ Login success:", email);
-
-
-
-  res.json({
-
-    success: true,
-
-    user: { email },
-
-  });
-
-});
-
-
-
-app.post("/api/auth/logout", (req, res) => {
-
-  res.clearCookie("token", {
-
-    httpOnly: true,
-
-    secure: true,
-
-    sameSite: "none",
-
-  });
-
-
-
-  res.json({ success: true });
-
-});
-
-
-
-// =====================
-
-// PROTECTED ROUTE
-
-// =====================
-
-app.get("/api/portfolio", (req, res) => {
-
-  const token = req.cookies.token;
-
-
-
-  if (!token) {
-
-    return res.status(401).json({ error: "Unauthorized" });
-
-  }
-
-
-
-  res.json({
-
-    balance: 1000,
-
-    invested: 250,
-
-  });
-
-});
-
-
-
-// =====================
-
-// MONGODB
-
-// =====================
-
-mongoose
-
-  .connect(process.env.MONGO_URI)
-
-  .then(() => console.log("✅ MongoDB connected"))
-
-  .catch((err) => console.error("❌ Mongo error:", err));
-
-
-
-// =====================
-
-// SERVER
-
-// =====================
+// Start server
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () =>
+app.listen(PORT, () => {
 
-  console.log(`✅ Server running on port ${PORT}`)
+  console.log(`Server running on port ${PORT}`);
 
-);
+});
